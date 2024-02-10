@@ -1,6 +1,7 @@
 // npm run dev
 import { calculateTileCoordinate } from './utils/calculateTileCoordinates';
 import { loadSprites } from './utils/loadSprites';
+import { Sprite } from './class';
 import { SPRITES } from './constants';
 
 import mapJSON from './assets/map.json'
@@ -55,9 +56,17 @@ async function init() {
     }
   }
 
-
-
   const sprites = await loadSprites(SPRITES);
+
+  const durMap = new Sprite({
+    ctx,
+    image: sprites.DUR,
+    position: {
+      x: 0,
+      y: 0
+    }
+  });
+
 
   let lastTimeUpdate = 0;
 
@@ -68,7 +77,8 @@ async function init() {
 
     updateCamera();
     ctx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
-    drawGame(0);
+    durMap.draw();
+    // drawGame(0);
     drawCharacter(deltaTime);
     // drawGame(1);
   };
