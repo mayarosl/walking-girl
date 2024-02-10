@@ -12,19 +12,6 @@ const canvas = document.getElementById('game') as HTMLCanvasElement | null;
 
 if (!canvas) throw new Error('Canvas not found')
 
-const CANVAS_WIDTH = canvas.width;
-const CANVAS_HEIGHT = canvas.height;
-const COL_LENGTH = 30;
-
-const ctx = canvas.getContext('2d') as CanvasRenderingContext2D;
-
-function loadSprites() {
-  return Promise.all([
-    loadImage(HAGESHI_WALK), 
-    loadImage(terrianPath)
-  ]);
-}
-
 // количество кадров
 const shots = 3;
 
@@ -32,10 +19,50 @@ let keyPress = false;
 let direction = 0;
 
 // стартовая точка персонажа
-let characterX = 0;
-let characterY = 0;
-
+let characterX = 100;
+let characterY = 300;
 let step = 0;
+
+const CANVAS_WIDTH = canvas.width;
+const CANVAS_HEIGHT = canvas.height;
+const COL_LENGTH = 30;
+const ROW_LENGTH = 20;
+const CELL_SIZE = 32;
+const MAX_PLAYER_X = COL_LENGTH * CELL_SIZE;
+const MAX_PLAYER_Y = ROW_LENGTH * CELL_SIZE;
+
+const ctx = canvas.getContext('2d') as CanvasRenderingContext2D;
+
+const camera = {
+  x: 0,
+  y: 0
+}
+
+function updateCamera() {
+  const halfWidth = CANVAS_WIDTH / 2;
+  const halfHeight = CANVAS_HEIGHT / 2;
+
+  // по умолчанию
+  // characterX - halfWidth = -300
+  // MAX_PLAYER_X = 960
+  camera.x = Math.max(0, Math.min(characterX - halfWidth, MAX_PLAYER_X - halfWidth))
+  camera.y = Math.max(0, Math.min(characterY - halfHeight, MAX_PLAYER_Y - halfHeight))
+
+  if (camera.x >= MAX_PLAYER_X - CANVAS_WIDTH) {
+    camera.x = MAX_PLAYER_X - CANVAS_WIDTH;
+  }
+
+  if (camera.y >= MAX_PLAYER_Y - CANVAS_HEIGHT) {
+    camera.y = MAX_PLAYER_Y - CANVAS_HEIGHT;
+  }
+}
+
+function loadSprites() {
+  return Promise.all([
+    loadImage(HAGESHI_WALK),
+    loadImage(terrianPath)
+  ]);
+}
 
 const mapImg = new Image();
 mapImg.src = terrianPath;
@@ -43,14 +70,14 @@ mapImg.src = terrianPath;
 const characterImg = new Image();
 characterImg.src = HAGESHI_WALK;
 
-
-
 loadSprites().then(() => {
   let lastTimeUpdate = 0;
 
   function animate(timestamp: number) {
     const deltaTime = timestamp - lastTimeUpdate;
 
+    updateCamera();
+    ctx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
     drawGame(0);
     drawCharacter(deltaTime);
     // drawGame(1);
@@ -70,47 +97,66 @@ function drawGame(layer = 0) {
     const col = cell % COL_LENGTH;
     const row = Math.floor(cell / COL_LENGTH);
     const tileNumber = data[cell];
-    const { x, y } = calculateTileCoordinate ({
+    const { x, y } = calculateTileCoordinate({
       tileNumber: tileNumber - 1,
-      width: 32,
-      height: 32,
+      width: CELL_SIZE,
+      height: CELL_SIZE,
       columns: 19,
       pixelGap: 1
     });
-    ctx.drawImage(mapImg, x, y, 32, 32, col * 32, row * 32, 32, 32)
+    ctx.drawImage(
+      mapImg,
+      x,
+      y,
+      CELL_SIZE,
+      CELL_SIZE,
+      col * CELL_SIZE - camera.x,
+      row * CELL_SIZE - camera.y,
+      CELL_SIZE, CELL_SIZE)
   }
 }
 
 function drawCharacter(deltaTime: number) {
-        if (keyPress) {
-        step = (step + 0.01 * deltaTime) % shots;
+  if (keyPress) {
+    step = (step + 0.01 * deltaTime) % shots;
+    const speed = Math.floor(0.3 * deltaTime);
 
-        // 0 - down, 1 - left, 2 - right, 3 - up
-        if (direction === 0) {
-          characterY += 0.1 * deltaTime;
-        } else if (direction === 1) {
-          characterX -= 0.1 * deltaTime;
-        } else if (direction === 2) {
-          characterX += 0.1 * deltaTime;
-        } else if (direction === 3) {
-          characterY -= 0.1 * deltaTime;
-        }
+    // 0 - down, 1 - left, 2 - right, 3 - up
+    if (direction === 0) {
+      characterY += speed;
+    } else if (direction === 1) {
+      characterX -= speed;
+    } else if (direction === 2) {
+      characterX += speed;
+    } else if (direction === 3) {
+      characterY -= speed;
+    }
 
-        // чтобы не убегал за пределы поля
-        if (characterX < 0) {
-          characterX = 0;
-        } else if (characterX > CANVAS_WIDTH - 64) {
-          characterX = CANVAS_WIDTH - 64;
-        }
-        if (characterY < 0) {
-          characterY = 0;
-        } else if (characterY > CANVAS_HEIGHT - 64) {
-          characterY = CANVAS_HEIGHT - 64;
-        }
-      }
+    // чтобы не убегал за пределы поля
+    if (characterX < 0) {
+      characterX = 0;
+    } else if (characterX >= MAX_PLAYER_X - CELL_SIZE) {
+      characterX = MAX_PLAYER_X - CELL_SIZE;
+    }
+    if (characterY < 0) {
+      characterY = 0;
+    } else if (characterY > MAX_PLAYER_Y - CELL_SIZE) {
+      characterY = MAX_PLAYER_Y - CELL_SIZE;
+    }
+  }
 
-      ctx.drawImage(characterImg, 48 * Math.floor(step), 48 * direction, 48, 48, characterX, characterY, 32, 32);
-  
+  ctx.drawImage(
+    characterImg,
+    48 * Math.floor(step),
+    48 * direction,
+    48,
+    48,
+    characterX - camera.x,
+    characterY - camera.y,
+    CELL_SIZE,
+    CELL_SIZE
+  );
+
 }
 
 function keyDownHandler(event: KeyboardEvent) {
