@@ -5,7 +5,7 @@ import { loadImage } from './utils/loadImage';
 import { calculateTileCoordinate } from './utils/calculateTileCoordinates';
 
 import HAGESHI_WALK from './assets/HAGESHI_WALK.png';
-import terrianPath from './assets/terrain.png';
+import terrianPath from './assets/durotar.png';
 import mapJSON from './assets/map.json'
 
 const canvas = document.getElementById('game') as HTMLCanvasElement | null;
@@ -53,7 +53,7 @@ loadSprites().then(() => {
 
     drawGame(0);
     drawCharacter(deltaTime);
-    drawGame(1);
+    // drawGame(1);
 
     lastTimeUpdate = timestamp;
     window.requestAnimationFrame(animate);
@@ -72,14 +72,19 @@ function drawGame(layer = 0) {
     const tileNumber = data[cell];
     const { x, y } = calculateTileCoordinate ({
       tileNumber: tileNumber - 1,
+      width: 32,
+      height: 32,
+      columns: 19,
+      pixelGap: 1
     });
-    ctx.drawImage(mapImg, x, y, 64, 64, col * 64, row * 64, 64, 64)
+    ctx.drawImage(mapImg, x, y, 32, 32, col * 32, row * 32, 32, 32)
   }
 }
 
 function drawCharacter(deltaTime: number) {
         if (keyPress) {
         step = (step + 0.01 * deltaTime) % shots;
+
         // 0 - down, 1 - left, 2 - right, 3 - up
         if (direction === 0) {
           characterY += 0.1 * deltaTime;
@@ -104,8 +109,7 @@ function drawCharacter(deltaTime: number) {
         }
       }
 
-      // ctx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT)
-      ctx.drawImage(characterImg, 48 * Math.floor(step), 48 * direction, 48, 48, characterX, characterY, 64, 64);
+      ctx.drawImage(characterImg, 48 * Math.floor(step), 48 * direction, 48, 48, characterX, characterY, 32, 32);
   
 }
 
